@@ -8,121 +8,194 @@ form.addEventListener("submit", handleSubmit);
 
 async function handleSubmit(event) {
 
-    event.preventDefault();
+event.preventDefault();
 
-    const submitButton =
-        form.querySelector("button[type='submit']");
+const submitButton =
+    form.querySelector("button[type='submit']");
 
-    const payload = {
-        first_name: document
-            .getElementById("firstName")
-            .value
-            .trim(),
+const payload = {
+    first_name: document
+        .getElementById("firstName")
+        .value
+        .trim(),
 
-        last_name: document
-            .getElementById("lastName")
-            .value
-            .trim(),
+    last_name: document
+        .getElementById("lastName")
+        .value
+        .trim(),
 
-        email: document
-            .getElementById("email")
-            .value
-            .trim()
-            .toLowerCase(),
+    email: document
+        .getElementById("email")
+        .value
+        .trim()
+        .toLowerCase(),
 
-        whatsapp: document
-            .getElementById("whatsapp")
-            .value
-            .trim()
-    };
+    whatsapp: document
+        .getElementById("whatsapp")
+        .value
+        .trim()
+};
 
-    console.log("Payload:", payload);
+if (
+    !payload.first_name ||
+    !payload.last_name ||
+    !payload.email ||
+    !payload.whatsapp
+) {
+    showMessage(
+        "Please fill all fields.",
+        "error"
+    );
+    return;
+}
+
+try {
+
+    submitButton.disabled = true;
+    submitButton.innerText = "Submitting...";
+
+    const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/members`,
+        {
+            method: "POST",
+
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization":
+                    `Bearer ${SUPABASE_KEY}`,
+                "Content-Type":
+                    "application/json",
+                "Accept":
+                    "application/json",
+                "Prefer":
+                    "return=representation"
+            },
+
+            body:
+                JSON.stringify(payload)
+        }
+    );
+
+    const responseText =
+        await response.text();
+
+    console.log(
+        "HTTP Status:",
+        response.status
+    );
+
+    console.log(
+        "Supabase Response:",
+        responseText
+    );
+
+    let result = {};
 
     try {
+        result =
+            JSON.parse(responseText);
+    }
+    catch {
+        result = {
+            raw: responseText
+        };
+    }
 
-        submitButton.disabled = true;
-        submitButton.innerText = "Submitting...";
+    if (!response.ok) {
 
-        const response = await fetch(
-            `${SUPABASE_URL}/rest/v1/members`,
-            {
-                method: "POST",
-                headers: {
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": `Bearer ${SUPABASE_KEY}`,
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "Prefer": "return=representation"
-                },
-                body: JSON.stringify(payload)
-            }
-        );
+        const errorMessage =
+            JSON.stringify(result);
 
-        const responseText =
-            await response.text();
+        if (
+            errorMessage.includes(
+                "members_email_unique"
+            )
+        ) {
 
-        console.log(
-            "HTTP Status:",
-            response.status
-        );
-
-        console.log(
-            "Raw Response:",
-            responseText
-        );
-
-        let result = {};
-
-        try {
-            result = JSON.parse(responseText);
-        } catch (e) {
-            result = {
-                raw: responseText
-            };
-        }
-
-        if (!response.ok) {
-
-            throw new Error(
-                result.message ||
-                responseText ||
-                "Unknown error"
+            showMessage(
+                "Looks like you've already joined the movement.",
+                "warning"
             );
+
+            return;
         }
 
-        console.log(
-            "Inserted Record:",
-            result
+        throw new Error(
+            result.message ||
+            "Unable to submit registration."
+        );
+    }
+
+    showMessage(
+        "🎉 Successfully registered!",
+        "success"
+    );
+
+    form.reset();
+
+}
+catch (error) {
+
+    console.error(
+        "Submission Error:",
+        error
+    );
+
+    if (
+        error.message.includes(
+            "Failed to fetch"
+        )
+    ) {
+
+        showMessage(
+            "Network error. Please check your internet connection.",
+            "error"
         );
 
+        return;
+    }
+
+    showMessage(
+        error.message ||
+        "Something went wrong. Please try again.",
+        "error"
+    );
+}
+finally {
+
+    submitButton.disabled = false;
+
+    submitButton.innerText =
+        "Join BagonSpray";
+}
+
+}
+
+function showMessage(
+text,
+type
+) {
+
+message.innerText = text;
+
+message.style.marginTop = "15px";
+message.style.fontWeight = "600";
+
+switch(type) {
+
+    case "success":
         message.style.color =
             "#22c55e";
+        break;
 
-        message.innerText =
-            "Successfully registered!";
+    case "warning":
+        message.style.color =
+            "#f59e0b";
+        break;
 
-        form.reset();
-
-    }
-    catch (error) {
-
-        console.error(
-            "Submission Error:",
-            error
-        );
-
+    default:
         message.style.color =
             "#ef4444";
-
-        message.innerText =
-            error.message;
-
-    }
-    finally {
-
-        submitButton.disabled = false;
-
-        submitButton.innerText =
-            "Join BagonSpray";
-    }
 }
+
+            }
