@@ -7,6 +7,7 @@ const message = document.getElementById("message");
 form.addEventListener("submit", handleSubmit);
 
 async function handleSubmit(event) {
+
     event.preventDefault();
 
     const submitButton =
@@ -35,18 +36,7 @@ async function handleSubmit(event) {
             .trim()
     };
 
-    if (
-        !payload.first_name ||
-        !payload.last_name ||
-        !payload.email ||
-        !payload.whatsapp
-    ) {
-        showMessage(
-            "Please fill all fields",
-            "error"
-        );
-        return;
-    }
+    console.log("Payload:", payload);
 
     try {
 
@@ -57,75 +47,82 @@ async function handleSubmit(event) {
             `${SUPABASE_URL}/rest/v1/members`,
             {
                 method: "POST",
-
                 headers: {
-                    apikey: SUPABASE_KEY,
-                    Authorization:
-                        `Bearer ${SUPABASE_KEY}`,
-                    "Content-Type":
-                        "application/json",
-                    Prefer:
-                        "return=representation"
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": `Bearer ${SUPABASE_KEY}`,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Prefer": "return=representation"
                 },
-
-                body:
-                    JSON.stringify(payload)
+                body: JSON.stringify(payload)
             }
         );
 
-        const result =
-            await response.json();
+        const responseText =
+            await response.text();
+
+        console.log(
+            "HTTP Status:",
+            response.status
+        );
+
+        console.log(
+            "Raw Response:",
+            responseText
+        );
+
+        let result = {};
+
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            result = {
+                raw: responseText
+            };
+        }
 
         if (!response.ok) {
 
-            console.error(result);
-
             throw new Error(
                 result.message ||
-                "Failed to submit"
+                responseText ||
+                "Unknown error"
             );
         }
 
         console.log(
-            "Inserted record:",
+            "Inserted Record:",
             result
         );
 
-        showMessage(
-            "Successfully registered!",
-            "success"
-        );
+        message.style.color =
+            "#22c55e";
+
+        message.innerText =
+            "Successfully registered!";
 
         form.reset();
 
-    } catch (error) {
+    }
+    catch (error) {
 
-        console.error(error);
-
-        showMessage(
-            error.message,
-            "error"
+        console.error(
+            "Submission Error:",
+            error
         );
 
-    } finally {
+        message.style.color =
+            "#ef4444";
+
+        message.innerText =
+            error.message;
+
+    }
+    finally {
 
         submitButton.disabled = false;
+
         submitButton.innerText =
             "Join BagonSpray";
     }
-}
-
-function showMessage(
-    text,
-    type
-) {
-
-    message.innerText = text;
-
-    message.style.marginTop = "15px";
-
-    message.style.color =
-        type === "success"
-        ? "#22c55e"
-        : "#ef4444";
 }
